@@ -94,11 +94,34 @@ fn normalize_uri_path(uri: &str, guest: bool) -> String {
         // The leading slash of a guest URI is part of the path, not a separator to strip.
         return normalize_cwd_for(&decoded, true);
     }
-    if cfg!(windows) {
+
+    let has_drive_letter = {
+        let bytes = decoded.as_bytes();
+        (bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
+            || (bytes.len() >= 3
+                && bytes[0] == b'/'
+                && bytes[1].is_ascii_alphabetic()
+                && bytes[2] == b':')
+    };
+
+    if has_drive_letter {
         let trimmed = decoded.trim_start_matches('/').trim_end_matches(['/', '\\']);
-        trimmed.replace('/', "\\").to_ascii_lowercase()
+        if cfg!(windows) {
+            trimmed.replace('/', "\\").to_ascii_lowercase()
+        } else {
+            trimmed.to_string()
+        }
     } else {
-        normalize_cwd_for(&decoded, false)
+        let trimmed_end = decoded.trim_end_matches(['/', '\\']);
+        if cfg!(windows) {
+            if trimmed_end.starts_with('/') {
+                trimmed_end.to_string()
+            } else {
+                trimmed_end.replace('/', "\\").to_ascii_lowercase()
+            }
+        } else {
+            normalize_cwd_for(trimmed_end, false)
+        }
     }
 }
 

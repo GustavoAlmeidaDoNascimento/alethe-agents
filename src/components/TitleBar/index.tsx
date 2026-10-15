@@ -424,7 +424,9 @@ export function TitleBar() {
       if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
         return getCurrentWindow()
       }
-    } catch {}
+    } catch {
+      // Ignored: Not running inside Tauri webview
+    }
     return null
   }, [])
 
